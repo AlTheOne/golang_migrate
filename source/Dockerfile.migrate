@@ -1,0 +1,29 @@
+# Stage 1: Build app...
+FROM golang:1.21.3-alpine3.17 as migrate_builder
+
+RUN apk add --no-cache git gcc musl-dev make ca-certificates
+
+WORKDIR /go/src/github.com/golang-migrate/migrate
+
+ENV GO111MODULE=on
+
+RUN git clone https://github.com/golang-migrate/migrate.git .
+RUN go mod download
+RUN make
+
+
+# Stage 2: Copy to less weight container...
+FROM alpine:3.17 as golang_migrate
+
+RUN apk add --no-cache ca-certificates
+
+WORKDIR .
+
+COPY --from=migrate_builder /go/src/github.com/golang-migrate/migrate/migrate /bin/migrate
+
+COPY migrations ./migrations
+COPY scripts/migrations ./scripts/migrations
+
+RUN chmod +x ./scripts/migrations/*
+
+CMD ["migrate", "-help"]

@@ -1,0 +1,33 @@
+version: "3.7"
+
+services:
+  migrations:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrate
+      target: golang_migrate
+    volumes:
+      - ./migrations:/migrations
+      - ./scripts/migrations:/scripts/migrations
+    links:
+      - db
+    depends_on:
+      - db
+    env_file:
+      - .env.docker
+    environment:
+      - DB_HOST=db
+
+  db:
+    image: postgres:alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=database
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
